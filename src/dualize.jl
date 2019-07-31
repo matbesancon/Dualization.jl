@@ -1,10 +1,15 @@
 export dualize
 
 """
-    dualize(model::MOI.ModelLike)
+    dualize(model)
 
 Dualize the model
 """
+function dualize(model, dual_names::DualNames = DualNames("", ""))
+    dualize(model; dual_names = dual_names)    
+end
+
+# MOI ModelLike dualization
 function dualize(primal_model::MOI.ModelLike; dual_names::DualNames = DualNames("", ""))
     # Crates an empty dual problem
     dual_problem = DualProblem{Float64}()
@@ -50,4 +55,19 @@ function dualize(primal_model::MOI.ModelLike, dual_problem::DualProblem{T}, dual
                                   primal_objective, con_types)
 
     return dual_problem
+end
+
+# JuMP model dualization
+function dualize(model::JuMP.Model; dual_names::DualNames = DualNames("", ""))
+    JuMP_model = JuMP.Model()
+    if model.moi_backend.optimizer === nothing
+        dual_model = dualize(model.moi_backend)
+        MOI.copy_to(JuMP.backend(JuMP_model), dual_model.dual_model)
+    else
+        # dual_optimizer = deepcopy(model.moi_backend.optimizer)
+        # dual_problem = Dualization.DualProblem(dual_optimizer)
+        # dualize(model.moi_backend)
+        error("Dualize with optimizer attached not implemented")
+    end
+    return JuMP_model
 end
